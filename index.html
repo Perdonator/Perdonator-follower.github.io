@@ -74,6 +74,15 @@
             0% { top: 50%; opacity: 0; }
             100% { top: 80%; opacity: 1; }
         }
+
+        .bullet {
+            width: 10px;
+            height: 10px;
+            background-color: black;
+            border-radius: 50%;
+            position: absolute;
+            z-index: 1;
+        }
     </style>
 </head>
 <body>
@@ -97,6 +106,7 @@
         let score = 0;
         let enemySpeed = 2; // Initial enemy speed
         let timeElapsed = 0;
+        let bullets = []; // Array to store bullets
 
         // Start the game when space bar is pressed
         document.addEventListener('keydown', function(event) {
@@ -115,6 +125,7 @@
             score = 0;
             enemySpeed = 2;
             timeElapsed = 0;
+            bullets = [];
             updateScore();
             loseText.style.display = 'none';
             loseText.style.left = '50%';
@@ -183,41 +194,99 @@
         function updateScore() {
             scoreDisplay.textContent = score;
         }
-
+        
         // Update enemy position at regular intervals
-        setInterval(updateEnemyPosition, 20);
+setInterval(updateEnemyPosition, 20);
 
-        // Update score every second
-        setInterval(() => {
-            if (!gameOver) {
-                score++;
-                updateScore();
-                timeElapsed++;
-                if (timeElapsed % 1 === 0) { // Increase enemy speed every 30 seconds
-                    enemySpeed += 0.1; // Increase enemy speed by 0.5
-                }
-            }
-        }, 1000);
-
-        // Make "YOU LOSE!" text draggable with mouse clicks
-        loseText.addEventListener('mousedown', function(event) {
-            if (!gameOver && (event.button === 0 || event.button === 2)) { // Left click or right click
-                document.addEventListener('mousemove', drag);
-                document.addEventListener('mouseup', release);
-            }
-        });
-
-        // Function to drag "YOU LOSE!" text
-        function drag(event) {
-            loseText.style.left = event.pageX - loseText.offsetWidth / 2 + 'px';
-            loseText.style.top = event.pageY - loseText.offsetHeight / 2 + 'px';
+// Update score every second
+setInterval(() => {
+    if (!gameOver) {
+        score++;
+        updateScore();
+        timeElapsed++;
+        if (timeElapsed % 30 === 0) { // Increase enemy speed every 30 seconds
+            enemySpeed += 0.5; // Increase enemy speed by 0.5
         }
+    }
+}, 1000);
 
-        // Function to release "YOU LOSE!" text
-        function release() {
-            document.removeEventListener('mousemove', drag);
-            document.removeEventListener('mouseup', release);
+// Make "YOU LOSE!" text draggable with mouse clicks
+loseText.addEventListener('mousedown', function(event) {
+    if (!gameOver && (event.button === 0 || event.button === 2)) { // Left click or right click
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', release);
+    }
+});
+
+// Function to drag "YOU LOSE!" text
+function drag(event) {
+    loseText.style.left = event.pageX - loseText.offsetWidth / 2 + 'px';
+    loseText.style.top = event.pageY - loseText.offsetHeight / 2 + 'px';
+}
+
+// Function to release "YOU LOSE!" text
+function release() {
+    document.removeEventListener('mousemove', drag);
+    document.removeEventListener('mouseup', release);
+}
+
+// Function to shoot bullets
+document.addEventListener('mousedown', function(event) {
+    if (!gameOver && event.button === 0) { // Left mouse button
+        const bullet = document.createElement('div');
+        bullet.className = 'bullet';
+        bullet.style.left = playerX + 'px';
+        bullet.style.top = playerY + 'px';
+        document.body.appendChild(bullet);
+        bullets.push(bullet);
+        shootBullet(bullet, event.pageX, event.pageY);
+    }
+});
+
+// Function to shoot a single bullet towards a target
+function shootBullet(bullet, targetX, targetY) {
+    const dx = targetX - playerX;
+    const dy = targetY - playerY;
+    const angle = Math.atan2(dy, dx);
+    const speed = 5; // Adjust bullet speed as needed
+    const vx = Math.cos(angle) * speed;
+    const vy = Math.sin(angle) * speed;
+    moveBullet(bullet, vx, vy);
+}
+
+// Function to move a bullet
+function moveBullet(bullet, vx, vy) {
+    const bulletMoveInterval = setInterval(() => {
+        const rect = bullet.getBoundingClientRect();
+        const bulletX = rect.left;
+        const bulletY = rect.top;
+        if (bulletX < 0 || bulletX > window.innerWidth || bulletY < 0 || bulletY > window.innerHeight) {
+            clearInterval(bulletMoveInterval);
+            bullet.remove();
+            bullets.splice(bullets.indexOf(bullet), 1);
+        } else {
+            bullet.style.left = bulletX + vx + 'px';
+            bullet.style.top = bulletY + vy + 'px';
+            // Check for bullet collision with enemy
+            if (checkBulletCollision(bullet)) {
+                clearInterval(bulletMoveInterval);
+                bullet.remove();
+                bullets.splice(bullets.indexOf(bullet), 1);
+            }
         }
-    </script>
-</body>
-</html>
+    }, 20);
+}
+
+// Function to check bullet collision with enemy
+function checkBulletCollision(bullet) {
+    const bulletRect = bullet.getBoundingClientRect();
+    const enemyRect = enemy.getBoundingClientRect();
+    return (
+        bulletRect.left < enemyRect.right &&
+        bulletRect.right > enemyRect.left &&
+        bulletRect.top < enemyRect.bottom &&
+        bulletRect.bottom > enemyRect.top
+    );
+}
+
+       
