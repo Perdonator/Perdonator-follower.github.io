@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chase Game</title>
+    <style>
+        .ball {
+            width: 40px; /* Adjust size as needed */
+            height: 40px; /* Adjust size as needed */
+            border-radius: 50%;
+            position: absolute;
+            background-size: cover;
+        }
+        
+        #player {
+            background-image: url('https://th.bing.com/th/id/OIP.WVUdGBUvL0DDahr2Ie8nRgHaHa?rs=1&pid=ImgDetMain'); /* Replace with Nicholas Cage image URL */
+        }
+        
+        #enemy {
+            background-image: url('https://www.pngall.com/wp-content/uploads/11/Will-Smith-PNG-Photo.png'); /* Replace with Will Smith image URL */
+        }
+        
+        #score {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            font-size: 24px;
+        }
+
+        #loseText {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            color: red;
+            font-family: Arial, sans-serif; /* Keeping the font family the same */
+            user-select: none; /* Disable text selection */
+            cursor: pointer; /* Change cursor to indicate draggable */
+            transition: transform 0.5s ease; /* Add transition for smooth movement */
+            display: none; /* Hide initially */
+        }
+
+        #screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: none;
+            z-index: 9999;
+            display: none;
+        }
+
+        .shake {
+            animation: shake 3s ease-in-out;
+        }
+
+        @keyframes shake {
+            0% { transform: translate(0, 0); }
+            25% { transform: translate(-5px, 5px); }
+            50% { transform: translate(5px, -5px); }
+            75% { transform: translate(5px, 5px); }
+            100% { transform: translate(0, 0); }
+        }
+
+        .fall {
+            animation: fall 1.5s forwards;
+        }
+
+        @keyframes fall {
+            0% { top: 50%; opacity: 0; }
+            100% { top: 80%; opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div id="player" class="ball"></div>
+    <div id="enemy" class="ball"></div>
+    <div id="score">Score: <span id="scoreValue">0</span></div>
+    <div id="loseText" draggable="true">YOU LOSE!</div>
+    <div id="screen"></div>
+
+    <script>
+        const player = document.getElementById('player');
+        const enemy = document.getElementById('enemy');
+        const scoreDisplay = document.getElementById('scoreValue');
+        const loseText = document.getElementById('loseText');
+        const screen = document.getElementById('screen');
+        let playerX = 200; // Initial player position
+        let playerY = 200;
+        let enemyX = 0; // Initial enemy position
+        let enemyY = 0;
+        let gameOver = true; // Game starts as not running
+        let score = 0;
+        let enemySpeed = 2; // Initial enemy speed
+        let timeElapsed = 0;
+
+        // Start the game when space bar is pressed
+        document.addEventListener('keydown', function(event) {
+            if (event.code === 'Space' && gameOver) {
+                startGame();
+            }
+        });
+
+        // Function to start the game
+        function startGame() {
+            gameOver = false;
+            playerX = 200;
+            playerY = 200;
+            enemyX = 0;
+            enemyY = 0;
+            score = 0;
+            enemySpeed = 2;
+            timeElapsed = 0;
+            updateScore();
+            loseText.style.display = 'none';
+            loseText.style.left = '50%';
+            loseText.style.top = '50%';
+            screen.style.display = 'none';
+        }
+
+        // Update player position based on mouse movement
+        document.addEventListener('mousemove', function(event) {
+            if (!gameOver) {
+                playerX = event.pageX;
+                playerY = event.pageY;
+                updatePlayerPosition();
+            }
+        });
+
+        // Update enemy position to chase player
+        function updateEnemyPosition() {
+            if (!gameOver) {
+                const dx = playerX - enemyX;
+                const dy = playerY - enemyY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const vx = (dx / distance) * enemySpeed;
+                const vy = (dy / distance) * enemySpeed;
+                enemyX += vx;
+                enemyY += vy;
+                enemy.style.left = enemyX + 'px';
+                enemy.style.top = enemyY + 'px';
+                if (checkCollision()) {
+                    endGame();
+                }
+            }
+        }
+
+        // Update player position on the screen
+        function updatePlayerPosition() {
+            player.style.left = playerX + 'px';
+            player.style.top = playerY + 'px';
+        }
+
+        // Check for collision between player and enemy
+        function checkCollision() {
+            const dx = playerX - enemyX;
+            const dy = playerY - enemyY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            return distance < 20; // Adjust the collision threshold
+        }
+
+        // End the game if player collides with enemy
+        function endGame() {
+            gameOver = true;
+            screen.style.display = 'block';
+            screen.classList.add('shake');
+            loseText.style.display = 'block';
+            loseText.classList.add('fall');
+            loseText.style.cursor = 'grab';
+            setTimeout(() => {
+                screen.style.display = 'none';
+                screen.classList.remove('shake');
+                loseText.classList.remove('fall');
+            }, 3000); // Wait for 3 seconds
+            alert('Game Over! Score: ' + score);
+        }
+
+        // Update score display
+        function updateScore() {
+            scoreDisplay.textContent = score;
+        }
+
+        // Update enemy position at regular intervals
+        setInterval(updateEnemyPosition, 20);
+
+        // Update score every second
+        setInterval(() => {
+            if (!gameOver) {
+                score++;
+                updateScore();
+                timeElapsed++;
+                if (timeElapsed % 1 === 0) { // Increase enemy speed every 30 seconds
+                    enemySpeed += 0.1; // Increase enemy speed by 0.5
+                }
+            }
+        }, 1000);
+
+        // Make "YOU LOSE!" text draggable with mouse clicks
+        loseText.addEventListener('mousedown', function(event) {
+            if (!gameOver && (event.button === 0 || event.button === 2)) { // Left click or right click
+                document.addEventListener('mousemove', drag);
+                document.addEventListener('mouseup', release);
+            }
+        });
+
+        // Function to drag "YOU LOSE!" text
+        function drag(event) {
+            loseText.style.left = event.pageX - loseText.offsetWidth / 2 + 'px';
+            loseText.style.top = event.pageY - loseText.offsetHeight / 2 + 'px';
+        }
+
+        // Function to release "YOU LOSE!" text
+        function release() {
+            document.removeEventListener('mousemove', drag);
+            document.removeEventListener('mouseup', release);
+        }
+    </script>
+</body>
+</html>
